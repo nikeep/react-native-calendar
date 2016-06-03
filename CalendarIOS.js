@@ -425,12 +425,10 @@ var styles = StyleSheet.create({
   controlButton: {
   },
   controlButtonText: {
-    fontFamily: "OpenSans", 
     fontSize: 12,
     color: '#A7A7A7'
   },
   title: {
-    fontFamily: "OpenSans", 
     flex: 1,
     textAlign: 'center',
     fontSize: 12,
@@ -441,7 +439,6 @@ var styles = StyleSheet.create({
     // borderBottomWidth: 1,
   },
   dayHeading: {
-    fontFamily: "OpenSans", 
     flex: 1,
     fontSize: 10,
     textAlign: 'center',
@@ -468,7 +465,6 @@ var styles = StyleSheet.create({
     width: DEVICE_WIDTH / 7
   },
   day: {
-    fontFamily: "OpenSans", 
     fontSize: 12,
     alignSelf: 'center',
   },
@@ -499,7 +495,6 @@ var styles = StyleSheet.create({
     backgroundColor: 'black',
   },
   selectedDayText: {
-    fontFamily: "OpenSans", 
     color: 'white',
     fontWeight: 'bold',
   },
