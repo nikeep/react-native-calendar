@@ -19,7 +19,8 @@ let
   MAX_COLUMNS = 7,
   MAX_ROWS = 7,
   DEVICE_WIDTH = Dimensions.get('window').width,
-  VIEW_INDEX = 2;
+  VIEW_INDEX = 2,
+  monthFormat = 'MMMM YYYY';
 
 let Day = React.createClass({
 
@@ -27,17 +28,18 @@ let Day = React.createClass({
     newDay: PropTypes.object,
     isSelected: PropTypes.bool,
     isToday: PropTypes.bool,
+    isDayUnavailable: PropTypes.bool,
     hasEvent: PropTypes.bool,
     currentDay: PropTypes.number,
     onPress: PropTypes.func,
     usingEvents: PropTypes.bool,
     filler: PropTypes.bool,
-    customStyle: PropTypes.object,
+    customStyle: PropTypes.object
   },
 
   getDefaultProps () {
     return {
-      customStyle: {},
+      customStyle: {}
     }
   },
 
@@ -57,17 +59,21 @@ let Day = React.createClass({
     return dayCircleStyle;
   },
 
-  _dayTextStyle(newDay, isSelected, isToday) {
+  _dayTextStyle(newDay, isSelected, isToday, isDayUnavailable) {
     var dayTextStyle = [styles.day, this.props.customStyle.day];
-    if (isToday && !isSelected) {
-      dayTextStyle.push(styles.currentDayText);
-      dayTextStyle.push(this.props.customStyle.currentDayText);
-    } else if (isToday || isSelected) {
-      dayTextStyle.push(styles.selectedDayText);
-      dayTextStyle.push(this.props.customStyle.selectedDayText);
-    } else if (moment(newDay).day() === 6 || moment(newDay).day() === 0) {
-      dayTextStyle.push(styles.weekendDayText);
-      dayTextStyle.push(this.props.customStyle.weekendDayText);
+    if(isDayUnavailable) {
+        dayTextStyle.push(styles.unavailableDay);
+      } else {
+      if (isToday && !isSelected) {
+        dayTextStyle.push(styles.currentDayText);
+        dayTextStyle.push(this.props.customStyle.currentDayText);
+      } else if (isToday || isSelected) {
+        dayTextStyle.push(styles.selectedDayText);
+        dayTextStyle.push(this.props.customStyle.selectedDayText);
+      } else if (moment(newDay).day() === 6 || moment(newDay).day() === 0) {
+        dayTextStyle.push(styles.weekendDayText);
+        dayTextStyle.push(this.props.customStyle.weekendDayText);
+      }
     }
     return dayTextStyle;
   },
@@ -78,6 +84,7 @@ let Day = React.createClass({
       newDay,
       isSelected,
       isToday,
+      isDayUnavailable,
       hasEvent,
       usingEvents,
       filler,
@@ -93,10 +100,10 @@ let Day = React.createClass({
       );
     } else {
       return (
-        <TouchableOpacity onPress={() => this.props.onPress(newDay)}>
+        <TouchableOpacity activeOpacity={1} onPress={() => this.props.onPress(newDay, isDayUnavailable) } >
           <View style={[styles.dayButton, this.props.customStyle.dayButton]}>
             <View style={this._dayCircleStyle(newDay, isSelected, isToday)}>
-              <Text style={this._dayTextStyle(newDay, isSelected, isToday)}>{currentDay + 1}</Text>
+              <Text style={this._dayTextStyle(newDay, isSelected, isToday, isDayUnavailable)}>{currentDay + 1}</Text>
             </View>
             {usingEvents ?
               <View style={[styles.eventIndicatorFiller, this.props.customStyle.eventIndicatorFiller, hasEvent && styles.eventIndicator, hasEvent && this.props.customStyle.eventIndicator]}></View>
@@ -138,7 +145,7 @@ let Calendar = React.createClass({
       dayHeadings: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
       startDate: moment().format('YYYY-MM-DD'),
       eventDates: [],
-      customStyle: {},
+      customStyle: {}
     }
   },
 
@@ -146,7 +153,9 @@ let Calendar = React.createClass({
     return {
       calendarDates: this.getInitialStack(),
       selectedDate: moment(this.props.selectedDate).format(),
-      currentMonth: moment(this.props.startDate).format()
+      currentMonth: moment(this.props.startDate).format().toUpperCase(),
+      nextButtonText: moment(this.props.selectedDate).add(1, 'months').format(monthFormat).toUpperCase(),
+      prevButtonText: moment(this.props.selectedDate).subtract(1, 'months').format(monthFormat).toUpperCase()
     };
   },
 
@@ -178,13 +187,13 @@ let Calendar = React.createClass({
       return (
         <View style={[styles.calendarControls, this.props.customStyle.calendarControls]}>
           <TouchableOpacity style={[styles.controlButton, this.props.customStyle.controlButton]} onPress={this._onPrev}>
-            <Text style={[styles.controlButtonText, this.props.customStyle.controlButtonText]}>{this.props.prevButtonText}</Text>
+            <Text style={[styles.controlButtonText, this.props.customStyle.controlButtonText]}>{this.state.prevButtonText}</Text>
           </TouchableOpacity>
           <Text style={[styles.title, this.props.customStyle.title]}>
             {moment(this.state.currentMonth).format(this.props.titleFormat)}
           </Text>
           <TouchableOpacity style={[styles.controlButton, this.props.customStyle.controlButton]} onPress={this._onNext}>
-            <Text style={[styles.controlButtonText, this.props.customStyle.controlButtonText]}>{this.props.nextButtonText}</Text>
+            <Text style={[styles.controlButtonText, this.props.customStyle.controlButtonText]}>{this.state.nextButtonText}</Text>
           </TouchableOpacity>
         </View>
       )
@@ -224,15 +233,9 @@ let Calendar = React.createClass({
         } else {
           if(currentDay < daysInMonth) {
             var newDay = moment(dayStart).set('date', currentDay + 1);
+            var isDayUnavailable = (moment(newDay).isAfter(moment().subtract(1, 'days').format("YYYY-MM-DD"))) ? false : true;
             var isToday = (moment().isSame(newDay, 'month') && moment().isSame(newDay, 'day')) ? true : false;
             var isSelected = (moment(this.state.selectedDate).isSame(newDay, 'month') && moment(this.state.selectedDate).isSame(newDay, 'day')) ? true : false;
-            var hasEvent = false;
-            if (this.props.eventDates) {
-              for (var x = 0; x < this.props.eventDates.length; x++) {
-                hasEvent = moment(this.props.eventDates[x]).isSame(newDay, 'day') ? true : false;
-                if (hasEvent) { break; }
-              }
-            }
 
             days.push((
               <Day
@@ -242,9 +245,7 @@ let Calendar = React.createClass({
                 newDay={newDay}
                 isToday={isToday}
                 isSelected={isSelected}
-                hasEvent={hasEvent}
-                usingEvents={this.props.eventDates.length > 0 ? true : false}
-                customStyle={this.props.customStyle}
+                isDayUnavailable={isDayUnavailable}
               />
             ));
             currentDay++;
@@ -283,15 +284,15 @@ let Calendar = React.createClass({
 
   _dayTextStyle(newDay, isSelected, isToday) {
     var dayTextStyle = [styles.day, this.props.customStyle.day];
-    if (isToday && !isSelected) {
-      dayTextStyle.push(styles.currentDayText);
-      dayTextStyle.push(this.props.customStyle.currentDayText);
-    } else if (isToday || isSelected) {
+    if (isToday || isSelected) {
       dayTextStyle.push(styles.selectedDayText);
       dayTextStyle.push(this.props.customStyle.selectedDayText);
     } else if (moment(newDay).day() === 6 || moment(newDay).day() === 0) {
       dayTextStyle.push(styles.weekendDayText);
       dayTextStyle.push(this.props.customStyle.weekendDayText);
+    } else if (isToday && !isSelected) {
+      dayTextStyle.push(styles.currentDayText);
+      dayTextStyle.push(this.props.customStyle.currentDayText);
     }
     return dayTextStyle;
   },
@@ -302,7 +303,9 @@ let Calendar = React.createClass({
     calendarDates.pop();
     this.setState({
       calendarDates: calendarDates,
-      currentMonth: calendarDates[this.props.scrollEnabled ? VIEW_INDEX : 0]
+      currentMonth: calendarDates[this.props.scrollEnabled ? VIEW_INDEX : 0].toUpperCase(),
+      nextButtonText: moment(this.state.currentMonth).format(monthFormat).toUpperCase(),
+      prevButtonText: moment(this.state.currentMonth).subtract(2, 'months').format(monthFormat).toUpperCase()
     });
   },
 
@@ -312,15 +315,19 @@ let Calendar = React.createClass({
     calendarDates.shift();
     this.setState({
       calendarDates: calendarDates,
-      currentMonth: calendarDates[this.props.scrollEnabled ? VIEW_INDEX : 0]
+      currentMonth: calendarDates[this.props.scrollEnabled ? VIEW_INDEX : 0].toUpperCase(),
+      nextButtonText: moment(this.state.currentMonth).add(2, 'months').format(monthFormat).toUpperCase(),
+      prevButtonText: moment(this.state.currentMonth).format(monthFormat).toUpperCase()
     });
   },
 
-  _selectDate(date) {
-    this.setState({
-      selectedDate: date,
-    });
-    this.props.onDateSelect && this.props.onDateSelect(date.format());
+  _selectDate(date, isDayUnavailable) {
+    if(!isDayUnavailable) {
+      this.setState({
+        selectedDate: date,
+      });
+      this.props.onDateSelect && this.props.onDateSelect(date.format());
+    }
   },
 
   _onPrev(){
@@ -389,6 +396,7 @@ let Calendar = React.createClass({
             scrollEventThrottle={600}
             showsHorizontalScrollIndicator={false}
             automaticallyAdjustContentInsets={false}
+            sendMomentumEvents={true}
             onMomentumScrollEnd={(event) => this._scrollEnded(event)}>
               {this.state.calendarDates.map((date) => { return this._renderedMonth(date) })}
           </ScrollView>
@@ -404,7 +412,7 @@ let Calendar = React.createClass({
 
 var styles = StyleSheet.create({
   calendarContainer: {
-    backgroundColor: '#f7f7f7',
+    backgroundColor: '#EFEFEF',
   },
   monthContainer: {
     width: DEVICE_WIDTH
@@ -417,30 +425,33 @@ var styles = StyleSheet.create({
   controlButton: {
   },
   controlButtonText: {
-    fontSize: 15,
+    fontFamily: "OpenSans", 
+    fontSize: 12,
+    color: '#A7A7A7'
   },
   title: {
+    fontFamily: "OpenSans", 
     flex: 1,
     textAlign: 'center',
-    fontSize: 15,
+    fontSize: 12,
   },
   calendarHeading: {
     flexDirection: 'row',
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
+    // borderTopWidth: 1,
+    // borderBottomWidth: 1,
   },
   dayHeading: {
+    fontFamily: "OpenSans", 
     flex: 1,
-    fontSize: 15,
+    fontSize: 10,
     textAlign: 'center',
     paddingVertical: 5
   },
   weekendHeading: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 10,
     textAlign: 'center',
     paddingVertical: 5,
-    color: '#cccccc'
   },
   weekRow: {
     flexDirection: 'row',
@@ -449,15 +460,16 @@ var styles = StyleSheet.create({
     alignItems: 'center',
     padding: 5,
     width: DEVICE_WIDTH / 7,
-    borderTopWidth: 1,
-    borderTopColor: '#e9e9e9',
+    // borderTopWidth: 1,
+    // borderTopColor: '#e9e9e9',
   },
   dayButtonFiller: {
     padding: 5,
     width: DEVICE_WIDTH / 7
   },
   day: {
-    fontSize: 16,
+    fontFamily: "OpenSans", 
+    fontSize: 12,
     alignSelf: 'center',
   },
   eventIndicatorFiller: {
@@ -478,20 +490,23 @@ var styles = StyleSheet.create({
     borderRadius: 14,
   },
   currentDayCircle: {
-    backgroundColor: 'red',
+    backgroundColor: 'orange',
   },
   currentDayText: {
-    color: 'red',
+    color: 'black',
   },
   selectedDayCircle: {
     backgroundColor: 'black',
   },
   selectedDayText: {
+    fontFamily: "OpenSans", 
     color: 'white',
     fontWeight: 'bold',
   },
+  unavailableDay: {
+    color: '#A4A4A4',
+  },
   weekendDayText: {
-    color: '#cccccc',
   }
 });
 
