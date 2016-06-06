@@ -236,13 +236,14 @@ let Calendar = React.createClass({
             var isDayUnavailable = (moment(newDay).isAfter(moment().subtract(1, 'days').format("YYYY-MM-DD"))) ? false : true;
             var isToday = (moment().isSame(newDay, 'month') && moment().isSame(newDay, 'day')) ? true : false;
             var isSelected = (moment(this.state.selectedDate).isSame(newDay, 'month') && moment(this.state.selectedDate).isSame(newDay, 'day')) ? true : false;
-
             days.push((
               <Day
                 key={`${i},${j}`}
                 onPress={this._selectDate}
                 currentDay={currentDay}
                 newDay={newDay}
+                hasEvent={this.props.eventDates === moment(newDay).format("YYYY-MM-DD")}
+                usingEvents={true}
                 isToday={isToday}
                 isSelected={isSelected}
                 isDayUnavailable={isDayUnavailable}
@@ -412,7 +413,7 @@ let Calendar = React.createClass({
 
 var styles = StyleSheet.create({
   calendarContainer: {
-    backgroundColor: '#EFEFEF',
+    // backgroundColor: '#EFEFEF',
   },
   monthContainer: {
     width: DEVICE_WIDTH
@@ -476,7 +477,7 @@ var styles = StyleSheet.create({
     borderRadius: 2,
   },
   eventIndicator: {
-    backgroundColor: '#cccccc'
+    backgroundColor: '#4083FF'
   },
   dayCircleFiller: {
     justifyContent: 'center',
@@ -492,7 +493,7 @@ var styles = StyleSheet.create({
     color: 'black',
   },
   selectedDayCircle: {
-    backgroundColor: 'black',
+    backgroundColor: '#5DDDC5',
   },
   selectedDayText: {
     color: 'white',
